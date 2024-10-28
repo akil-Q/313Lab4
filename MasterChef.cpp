@@ -77,13 +77,17 @@ static void timerHandler(int sig, siginfo_t *si, void *uc)
 {
     (void) sig;
     (void) uc;
+    
     // Retrieve timer pointer from the si->si_value
     Step* comp_item = (Step*)si->si_value.sival_ptr;
+    
     // Mark the step as completed
     completedSteps->push_back(comp_item->id);
     completeCount++;
+    
     // Print completion message
     comp_item->PrintComplete();
+    
     // Raise SIGUSR1 signal to handle dependency removal
     raise(SIGUSR1);
 }
@@ -106,21 +110,22 @@ int main(int argc, char **argv)
     // Initialize global variables
     completedSteps = new vector<int>();
     recipeSteps = new StepList(input_file);
-
+    
     /* Set up signal handler for SIGRTMIN */
     struct sigaction sa;
     sa.sa_flags = SA_SIGINFO;
     sa.sa_sigaction = timerHandler;
     sigemptyset(&sa.sa_mask);
-
+    
     // Associate signals with handlers
     sigaction(SIGRTMIN, &sa, NULL);
     signal(SIGUSR1, RemoveDepHandler);
-
+    
     // Continue until all steps are completed
     while (completeCount < recipeSteps->Count()) {
         // Get steps that are ready to run
         vector<Step*> readySteps = recipeSteps->GetReadySteps();
+        
         // Start timers for ready steps that aren't already running
         for (Step* step : readySteps) {
             if (!step->running) {
@@ -128,11 +133,15 @@ int main(int argc, char **argv)
                 makeTimer(step, step->duration);
             }
         }
-        usleep(100000); // Increased delay to 100ms for better synchronization
+        
+        usleep(100000);  // Increased delay to 100ms for better synchronization
     }
-
+    
+    cout << "Enjoy!" << endl;
+    
     // Cleanup
     delete completedSteps;
     delete recipeSteps;
+    
     return 0;
 }
